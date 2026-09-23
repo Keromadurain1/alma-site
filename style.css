@@ -1,0 +1,161 @@
+/* Alma's public pages: privacy, and deleting an account.
+   The app's own palette (lib/design/alma_colors.dart), so a mother who
+   arrives here from the app recognises where she is. */
+
+:root {
+  --ground: #f6f5f1;
+  --surface: #ffffff;
+  --ink: #1b2a24;
+  --ink-muted: #56645d;
+  --forest: #245c46;
+  --forest-deep: #183f31;
+  --mint: #e1efe7;
+  --rule: #e2e0d8;
+  --alert: #b3261e;
+  --alert-soft: #fbe9e7;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #111815;
+    --surface: #18211d;
+    --ink: #e8eee9;
+    --ink-muted: #a5b3ab;
+    --forest: #7cc4a1;
+    --forest-deep: #b5e2cb;
+    --mint: #1f2f27;
+    --rule: #2a3530;
+    --alert: #f2b8b5;
+    --alert-soft: #3a1f1d;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI",
+    Roboto, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+main {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 40px 16px 80px;
+}
+
+.mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--forest);
+  font-weight: 800;
+  font-size: 20px;
+  text-decoration: none;
+  margin-bottom: 32px;
+}
+
+.mark span {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: var(--forest);
+  color: var(--ground);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+}
+
+h1 {
+  font-size: clamp(30px, 7vw, 42px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--forest-deep);
+  margin: 0 0 16px;
+  text-wrap: balance;
+}
+
+h2 {
+  font-size: 22px;
+  margin: 40px 0 8px;
+  color: var(--forest-deep);
+  text-wrap: balance;
+}
+
+h3 { font-size: 18px; margin: 28px 0 6px; }
+
+p, li { color: var(--ink); }
+.lead { font-size: 19px; color: var(--ink-muted); }
+a { color: var(--forest); }
+hr { border: 0; border-top: 1px solid var(--rule); margin: 36px 0; }
+em { color: var(--ink-muted); }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 22px;
+  padding: 24px;
+  margin: 24px 0;
+}
+
+.note {
+  background: var(--mint);
+  border-radius: 18px;
+  padding: 16px 18px;
+  color: var(--forest-deep);
+  margin: 20px 0;
+}
+
+.danger {
+  background: var(--alert-soft);
+  border-radius: 18px;
+  padding: 16px 18px;
+  margin: 20px 0;
+}
+
+label { display: block; font-weight: 700; margin: 16px 0 6px; }
+
+input {
+  width: 100%;
+  font: inherit;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--rule);
+  background: var(--ground);
+  color: var(--ink);
+}
+
+input:focus-visible, button:focus-visible, a:focus-visible {
+  outline: 3px solid var(--forest);
+  outline-offset: 2px;
+}
+
+button {
+  font: inherit;
+  font-weight: 700;
+  width: 100%;
+  min-height: 52px;
+  margin-top: 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--forest);
+  color: var(--ground);
+  cursor: pointer;
+}
+
+button.secondary { background: var(--mint); color: var(--forest-deep); }
+button.destroy { background: var(--alert); color: #fff; }
+button:disabled { opacity: 0.5; cursor: default; }
+
+.status { margin-top: 14px; min-height: 1.6em; color: var(--ink-muted); }
+.status.bad { color: var(--alert); }
+[hidden] { display: none !important; }
+
+@media (prefers-reduced-motion: no-preference) {
+  button { transition: filter 120ms ease; }
+  button:not(:disabled):hover { filter: brightness(1.08); }
+}

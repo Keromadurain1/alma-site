@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Delete your Alma account</title>
+  <meta name="description" content="Delete your Alma account and everything it holds, without the app.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <a class="mark" href="index.html"><span>a</span>Alma</a>
+
+  <h1>Delete your Alma account</h1>
+  <p class="lead">You can do this here, without the app. It happens when you
+    confirm it — not a request you send and wait on.</p>
+
+  <div class="note">
+    <strong>Have the app?</strong> It is quicker there: open Alma, then
+    <strong>Me → Delete everything</strong>. That also clears the record from
+    the phone itself, which this page cannot reach.
+  </div>
+
+  <h2>What is deleted</h2>
+  <ul>
+    <li>Your account and your email address</li>
+    <li>The copy of your record, if you kept one, and your scan pictures with it</li>
+    <li>Your messages in the rooms, your private messages, your friendships
+      and your reports</li>
+    <li>Where another mother quoted you in a reply, the quote. Her reply stays:
+      those words are hers.</li>
+  </ul>
+  <p>A room you made is <strong>not</strong> deleted for everyone in it — it
+    passes to another of its admins or members. Photos you sent in the last 30
+    days are deleted from the server automatically within that time.</p>
+  <p><strong>Your record on your phone is not touched by this page.</strong>
+    To remove it too, remove the Alma app from the phone.</p>
+
+  <!-- Step 1: her email -->
+  <section class="card" id="step-email">
+    <h2 style="margin-top:0">1. Your email address</h2>
+    <p>The one you sign in to Alma with. We will send a six-digit code to it,
+      so that only the person who can open that email can delete the account.</p>
+    <form id="email-form" novalidate>
+      <label for="email">Email address</label>
+      <input id="email" type="email" autocomplete="email" inputmode="email" required>
+      <button type="submit" id="send">Send me a code</button>
+      <p class="status" id="email-status" role="status" aria-live="polite"></p>
+    </form>
+  </section>
+
+  <!-- Step 2: the code -->
+  <section class="card" id="step-code" hidden>
+    <h2 style="margin-top:0">2. The code from your email</h2>
+    <p id="code-sent-to">If an Alma account uses that address, a code is on its
+      way. It can take a minute, and may be in spam.</p>
+    <form id="code-form" novalidate>
+      <label for="code">Six-digit code</label>
+      <input id="code" inputmode="numeric" autocomplete="one-time-code"
+             pattern="[0-9]*" maxlength="8" required>
+      <button type="submit" id="verify">Continue</button>
+      <button type="button" class="secondary" id="back">Use a different email</button>
+      <p class="status" id="code-status" role="status" aria-live="polite"></p>
+    </form>
+  </section>
+
+  <!-- Step 3: confirm -->
+  <section class="card" id="step-confirm" hidden>
+    <h2 style="margin-top:0">3. Delete it</h2>
+    <div class="danger">
+      This deletes the account <strong id="who"></strong> and everything listed
+      above. <strong>It cannot be undone.</strong> A new account can be made
+      later, but it will start empty.
+    </div>
+    <button type="button" class="destroy" id="delete">Delete my account</button>
+    <button type="button" class="secondary" id="cancel">Keep my account</button>
+    <p class="status" id="delete-status" role="status" aria-live="polite"></p>
+  </section>
+
+  <!-- Done -->
+  <section class="card" id="step-done" hidden>
+    <h2 style="margin-top:0">Your account has been deleted</h2>
+    <p>Everything listed above has gone from Alma's server. If Alma is still
+      on a phone, remove the app from it to remove the record there as well.</p>
+    <p>If you ever want Alma again, you are welcome back.</p>
+  </section>
+
+  <hr>
+  <p><a href="privacy.html">How Alma handles your information</a> ·
+    Questions: <a href="mailto:kasaggaraymond@gmail.com">kasaggaraymond@gmail.com</a></p>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+  // The same project the app signs in to. This key is the public one that
+  // ships inside the app; what an account can do is decided by the
+  // database, not by who holds it. delete_me() only ever deletes the account
+  // that is signed in (supabase/account_deletion.sql).
+  const SUPABASE_URL = 'https://vsxhwjvudnqkbvexstnm.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZzeGh3anZ1ZG5xa2J2ZXhzdG5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg2MDAxOTQsImV4cCI6MjEwNDE3NjE5NH0.hWV9UmcCJdOyuTxhKSFTpHDcFjxH9fNKpS3UONhHPyY';
+
+  const $ = (id) => document.getElementById(id);
+  const steps = ['step-email', 'step-code', 'step-confirm', 'step-done'];
+  const show = (id) => steps.forEach((s) => ($(s).hidden = s !== id));
+  const say = (el, text, bad) => { el.textContent = text; el.classList.toggle('bad', !!bad); };
+
+  let client = null;
+  try {
+    client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      // Nothing is kept in this browser after the page closes.
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+  } catch (e) {
+    say($('email-status'), 'This page could not start. Check your internet connection and reload it.', true);
+  }
+
+  let email = '';
+
+  $('email-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    email = $('email').value.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      say($('email-status'), 'That does not look like an email address.', true);
+      return;
+    }
+    if (!client) return;
+    $('send').disabled = true;
+    say($('email-status'), 'Sending…');
+    // shouldCreateUser: false — this page never makes an account. And the
+    // same words whether or not the address has one, so it cannot be used to
+    // find out whose email is registered.
+    const { error } = await client.auth.signInWithOtp({
+      email, options: { shouldCreateUser: false },
+    });
+    $('send').disabled = false;
+    const offline = error && /fetch|network/i.test(String(error.message));
+    if (offline) {
+      say($('email-status'), 'Your phone or computer could not reach Alma. Check the connection and try again.', true);
+      return;
+    }
+    if (error && /rate|too many|seconds/i.test(String(error.message))) {
+      say($('email-status'), 'A code was sent a moment ago. Wait a minute, then try again.', true);
+      return;
+    }
+    say($('email-status'), '');
+    show('step-code');
+    $('code').focus();
+  });
+
+  $('back').addEventListener('click', () => { show('step-email'); $('email').focus(); });
+
+  $('code-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const token = $('code').value.replace(/\s/g, '');
+    if (!/^[0-9]{6,8}$/.test(token)) {
+      say($('code-status'), 'The code is the six digits in the email.', true);
+      return;
+    }
+    $('verify').disabled = true;
+    say($('code-status'), 'Checking…');
+    const { data, error } = await client.auth.verifyOtp({ email, token, type: 'email' });
+    $('verify').disabled = false;
+    if (error || !data || !data.session) {
+      say($('code-status'), 'That code did not work. It may have expired — go back and send a new one.', true);
+      return;
+    }
+    say($('code-status'), '');
+    $('who').textContent = email;
+    show('step-confirm');
+  });
+
+  $('cancel').addEventListener('click', async () => {
+    await client.auth.signOut();
+    show('step-email');
+    say($('email-status'), 'Nothing was deleted. Your account is as it was.');
+  });
+
+  $('delete').addEventListener('click', async () => {
+    $('delete').disabled = true;
+    $('cancel').disabled = true;
+    say($('delete-status'), 'Deleting…');
+    // Her scan pictures first: deleting the account does not reach storage,
+    // and they are the most personal thing she kept. Only her own folder can
+    // be listed (supabase/record_files.sql).
+    try {
+      const { data: userData } = await client.auth.getUser();
+      const me = userData && userData.user && userData.user.id;
+      if (me) {
+        const bucket = client.storage.from('record-files');
+        for (;;) {
+          const { data: files } = await bucket.list(me + '/scans', { limit: 100 });
+          if (!files || files.length === 0) break;
+          await bucket.remove(files.map((f) => me + '/scans/' + f.name));
+          if (files.length < 100) break;
+        }
+      }
+    } catch (_) {
+      // The account still goes; nothing else can reach the pictures without
+      // it, and the deletion she asked for is not held up.
+    }
+    const { error } = await client.rpc('delete_me');
+    if (error) {
+      $('delete').disabled = false;
+      $('cancel').disabled = false;
+      say($('delete-status'), 'It could not be deleted just now. Nothing has changed — try again in a minute, or email the address below.', true);
+      return;
+    }
+    try { await client.auth.signOut(); } catch (_) {}
+    show('step-done');
+  });
+</script>
+</body>
+</html>
